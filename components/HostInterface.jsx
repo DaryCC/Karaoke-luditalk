@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { List, ListItem, Button, Typography, TextField } from '@mui/material'
+import { Container, Box, Paper, Grid } from '@mui/material';
 
 export default function HostInterface() {
   const [queue, setQueue] = useState([])
@@ -21,35 +22,33 @@ export default function HostInterface() {
     setQueue(queue.filter((_, i) => i !== index))
   }
 
-  return (
-    <div>
-      {/* <div className="content">Prueba en Host interface</div> */}
-      <Typography variant="h4">Controles del Host</Typography>
-      
-      <div>
-        <Button onClick={() => setIsPlaying(!isPlaying)}>
-          {isPlaying ? 'Pausar' : 'Reproducir'}
-        </Button>
-        <Button onClick={() => setCurrentSongIndex(prev => prev - 1)} disabled={currentSongIndex === 0}>
-          Anterior
-        </Button>
-        <Button onClick={() => setCurrentSongIndex(prev => prev + 1)} disabled={currentSongIndex >= queue.length - 1}>
-          Siguiente
-        </Button>
-      </div>
-
-      <List>
-        {queue.map((item, index) => (
-          <ListItem key={index}>
-            {item.snippet.title}
-            <Button onClick={() => handleMoveSong(index, 'next')}>Mover siguiente</Button>
-            <Button onClick={() => handleMoveSong(index, 'last')}>Mover al final</Button>
-            <Button onClick={() => handleDelete(index)} color="error">Eliminar</Button>
-          </ListItem>
-        ))}
-      </List>
-     <div className="watermark">by @luditalk</div>
-    </div>
-    
-  )
+return (
+    <Container maxWidth="md">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" sx={{ color: 'white', mb: 4, textAlign: 'center' }}>
+          Controles Luditalk
+        </Typography>
+        
+        <Paper sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.1)' }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              {/* Botones de control */}
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Button variant="contained" onClick={() => setIsPlaying(!isPlaying)}>
+                  {isPlaying ? 'Pausar' : 'Reproducir'}
+                </Button>
+                {/* ... otros botones ... */}
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <List sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
+                {/* ... lista de canciones ... */}
+              </List>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Box>
+    </Container>
+  );
 }
