@@ -29,6 +29,16 @@ export default function UserInterface() {
   const navigate = useNavigate();
   const [previewVideoId, setPreviewVideoId] = useState(null);
 
+  const [queueStatus, setQueueStatus] = useState({
+    totalSongs: 0,
+    estimatedWaitTime: 0,
+  });
+
+  // Calcular tiempo estimado de espera
+  const calculateWaitTime = () => {
+    const averageSongLength = 180; // 3 minutos
+    return queue.length * averageSongLength;
+  };
   // Agregar las opciones para el reproductor de YouTube
   const opts = {
     height: "200",

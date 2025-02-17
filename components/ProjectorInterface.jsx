@@ -2,22 +2,62 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { Container, Box, Paper, Grid } from "@mui/material";
+import { List, ListItem } from "@mui/material";
 import { QRCodeCanvas } from "qrcode.react";
 import YouTube from "react-youtube";
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-
 export default function ProjectorInterface() {
+  //Agregar controles de reproducción que respondan a las acciones del HostInterface
+  const [playerState, setPlayerState] = useState({
+    isplaying: true,
+    ismuted: false,
+    volume: 100,
+  });
+
+// // Añadir ref para controlar el player
+// const playerRef = useRef(null);
+
+// // Implementar métodos de control
+// const handlePlayerControls = (action) => {
+//   switch(action) {
+//     case 'play':
+//       playerRef.current?.playVideo();
+//       break;
+//     case 'pause':
+//       playerRef.current?.pauseVideo();
+//       break;
+//     // ... otros controles
+//   }
+// };
+
+
+
   const [queue, setQueue] = useState([
     {
       id: { videoId: "dQw4w9WgXcQ" },
-      user: "Usuario 1",
-      snippet: { title: "Canción 1" },
+      user: "Juan Pérez",
+      snippet: { title: "Never Gonna Give You Up - Rick Astley" },
     },
     {
       id: { videoId: "kJQP7kiw5Fk" },
-      user: "Usuario 2",
-      snippet: { title: "Canción 2" },
+      user: "María García",
+      snippet: { title: "Despacito - Luis Fonsi" },
+    },
+    {
+      id: { videoId: "9bZkp7q19f0" },
+      user: "Carlos Rodríguez",
+      snippet: { title: "Gangnam Style - PSY" },
+    },
+    {
+      id: { videoId: "L_jWHffIx5E" },
+      user: "Ana Martínez",
+      snippet: { title: "All Star - Smash Mouth" },
+    },
+    {
+      id: { videoId: "y6120QOlsfU" },
+      user: "Pedro Sánchez",
+      snippet: { title: "Sandstorm - Darude" },
     },
   ]);
 
@@ -44,7 +84,7 @@ export default function ProjectorInterface() {
           overflow: "hidden",
         }}
       >
-         <Typography
+        <Typography
           sx={{
             position: "absolute",
             top: "40px",
@@ -148,29 +188,57 @@ export default function ProjectorInterface() {
           overflowY: "auto",
         }}
       >
-        <Typography variant="h6" sx={{ color: "white" }}>
-          Próximas canciones:
-        </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            flexWrap: "nowrap",
-            pb: 1,
-          }}
-        >
-          {queue.slice(1).map((song, index) => (
-            <Typography
-              key={index}
-              sx={{
-                color: "white",
-                minWidth: "max-content",
-              }}
-            >
-              {song.snippet.title} - {song.user}
-            </Typography>
-          ))}
-        </Box>
+        <Grid item xs={12}>
+          <Typography variant="h5" sx={{ color: "white", mb: 2 }}>
+            Próximas canciones:
+          </Typography>
+          <List
+            sx={{ bgcolor: "rgba(255, 255, 255, 0.1)", borderRadius: 1, p: 2 }}
+          >
+            {queue.map((item, index) => (
+              <ListItem
+                key={index}
+                sx={{
+                  color: "white",
+                  bgcolor:
+                    index === 0
+                      ? "rgba(76, 175, 80, 0.3)"
+                      : "rgba(255, 255, 255, 0.05)",
+                  mb: 1,
+                  borderRadius: 1,
+                  position: "relative",
+                  padding: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: -10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    bgcolor: index === 0 ? "#4CAF50" : "#666",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {index + 1}
+                </Box>
+                <Box sx={{ ml: 3 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                    {item.user}
+                  </Typography>
+                  <Typography variant="body1">{item.snippet.title}</Typography>
+                </Box>
+              </ListItem>
+            ))}
+          </List>
+        </Grid>
       </Box>
     </Box>
   );
