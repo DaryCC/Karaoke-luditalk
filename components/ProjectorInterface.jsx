@@ -1,65 +1,77 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { Container, Box, Paper, Grid } from "@mui/material";
 import { List, ListItem } from "@mui/material";
 import { QRCodeCanvas } from "qrcode.react";
 import YouTube from "react-youtube";
-
+import { useKaraoke } from "../src/context/KaraokeContext";
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
 export default function ProjectorInterface() {
   //Agregar controles de reproducción que respondan a las acciones del HostInterface
-  const [playerState, setPlayerState] = useState({
-    isplaying: true,
-    ismuted: false,
-    volume: 100,
-  });
+  const { queue, playerState, setPlayerState } = useKaraoke();
+  const playerRef = useRef(null);
+  useEffect(() => {
+    if (playerRef.current && queue.length > 0) {
+      if (playerState.isPlaying) {
+        playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
+      }
+      playerRef.current.setVolume(playerState.volume);
+    }
+  }, [playerState, queue]);
 
-// // Añadir ref para controlar el player
-// const playerRef = useRef(null);
+  // const [playerState, setPlayerState] = useState({
+  //   isplaying: true,
+  //   ismuted: false,
+  //   volume: 100,
+  // });
 
-// // Implementar métodos de control
-// const handlePlayerControls = (action) => {
-//   switch(action) {
-//     case 'play':
-//       playerRef.current?.playVideo();
-//       break;
-//     case 'pause':
-//       playerRef.current?.pauseVideo();
-//       break;
-//     // ... otros controles
-//   }
-// };
+  // // Añadir ref para controlar el player
+  // const playerRef = useRef(null);
 
+  // // Implementar métodos de control
+  // const handlePlayerControls = (action) => {
+  //   switch(action) {
+  //     case 'play':
+  //       playerRef.current?.playVideo();
+  //       break;
+  //     case 'pause':
+  //       playerRef.current?.pauseVideo();
+  //       break;
+  //     // ... otros controles
+  //   }
+  // };
 
-
-  const [queue, setQueue] = useState([
-    {
-      id: { videoId: "dQw4w9WgXcQ" },
-      user: "Juan Pérez",
-      snippet: { title: "Never Gonna Give You Up - Rick Astley" },
-    },
-    {
-      id: { videoId: "kJQP7kiw5Fk" },
-      user: "María García",
-      snippet: { title: "Despacito - Luis Fonsi" },
-    },
-    {
-      id: { videoId: "9bZkp7q19f0" },
-      user: "Carlos Rodríguez",
-      snippet: { title: "Gangnam Style - PSY" },
-    },
-    {
-      id: { videoId: "L_jWHffIx5E" },
-      user: "Ana Martínez",
-      snippet: { title: "All Star - Smash Mouth" },
-    },
-    {
-      id: { videoId: "y6120QOlsfU" },
-      user: "Pedro Sánchez",
-      snippet: { title: "Sandstorm - Darude" },
-    },
-  ]);
+  // const [queue, setQueue] = useState([
+  //   {
+  //     id: { videoId: "dQw4w9WgXcQ" },
+  //     user: "Juan Pérez",
+  //     snippet: { title: "Never Gonna Give You Up - Rick Astley" },
+  //   },
+  //   {
+  //     id: { videoId: "kJQP7kiw5Fk" },
+  //     user: "María García",
+  //     snippet: { title: "Despacito - Luis Fonsi" },
+  //   },
+  //   {
+  //     id: { videoId: "9bZkp7q19f0" },
+  //     user: "Carlos Rodríguez",
+  //     snippet: { title: "Gangnam Style - PSY" },
+  //   },
+  //   {
+  //     id: { videoId: "L_jWHffIx5E" },
+  //     user: "Ana Martínez",
+  //     snippet: { title: "All Star - Smash Mouth" },
+  //   },
+  //   {
+  //     id: { videoId: "y6120QOlsfU" },
+  //     user: "Pedro Sánchez",
+  //     snippet: { title: "Sandstorm - Darude" },
+  //   },
+  // ]);
 
   const opts = {
     height: "100%",

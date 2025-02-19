@@ -19,11 +19,13 @@ import {
   Add,
   Delete,
 } from "@mui/icons-material";
+import { useKaraoke } from "../src/context/KaraokeContext";
 
 export default function HostInterface() {
+  const { queue, setQueue, playerState, setPlayerState } = useKaraoke();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
-  const [queue, setQueue] = useState([]);
+  // const [queue, setQueue] = useState([]);
   const [previewVideoId, setPreviewVideoId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
@@ -65,7 +67,10 @@ export default function HostInterface() {
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    setPlayerState((prev) => ({
+      ...prev,
+      isPlaying: !prev.isPlaying,
+    }));
   };
 
   const handleNext = () => {
@@ -78,6 +83,13 @@ export default function HostInterface() {
     setQueue([...queue, video]);
     setSearchTerm("");
     setResults([]);
+  };
+
+  const handleVolumeChange = (value) => {
+    setPlayerState((prev) => ({
+      ...prev,
+      volume: value,
+    }));
   };
 
   return (

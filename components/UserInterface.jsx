@@ -1,9 +1,10 @@
 import { Search, Add, PlayArrow, QueueMusic } from "@mui/icons-material";
 import React, { useState, useEffect } from "react";
 import YouTube from "react-youtube";
-import { useNavigate } from "react-router-dom";
 // En UserInterface.jsx, añade al inicio:
-import logo from "/src/media/ludi-logo.png";
+
+import { useKaraoke } from "../src/context/KaraokeContext";
+// import logo from "/src/media/ludi-logo.png";
 import {
   TextField,
   Button,
@@ -21,24 +22,55 @@ import {
 import { QRCodeCanvas } from "qrcode.react";
 
 export default function UserInterface() {
+  const { queue, setQueue, deviceTimestamp, setDeviceTimestamp } = useKaraoke();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
-  const [queue, setQueue] = useState([]);
+  // const [queue, setQueue] = useState([]);
   const [userName, setUserName] = useState("");
   const [lastAdded, setLastAdded] = useState(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [previewVideoId, setPreviewVideoId] = useState(null);
+  const WAIT_TIME = 18000; // 10 segundos en milisegundos (antes era 180000)
 
-  const [queueStatus, setQueueStatus] = useState({
-    totalSongs: 0,
-    estimatedWaitTime: 0,
-  });
+  // karaoke-app/components/UserInterface.jsx
+  const addToQueue = async (video) => {
+    if (!userName) {
+      alert("Ingresa tu nombre");
+      return;
+    }
 
-  // Calcular tiempo estimado de espera
-  const calculateWaitTime = () => {
-    const averageSongLength = 180; // 3 minutos
-    return queue.length * averageSongLength;
+    // Verificar el tiempo de espera
+    const lastAddedTime = localStorage.getItem("lastAdded");
+    if (lastAddedTime && Date.now() - parseInt(lastAddedTime) < WAIT_TIME) {
+      alert(`Debes esperar ${WAIT_TIME / 1000} segundos entre canciones`);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3000/api/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: video.id.videoId,
+          user: userName,
+          title: video.snippet.title,
+          snippet: video.snippet,
+          deviceId: localStorage.getItem("deviceId"),
+        }),
+      });
+
+      if (response.ok) {
+        localStorage.setItem("lastAdded", Date.now().toString());
+        setLastAdded(Date.now());
+        setOpenSnackbar(true);
+        setResults([]);
+        setSearchTerm("");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
+
   // Agregar las opciones para el reproductor de YouTube
   const opts = {
     height: "200",
@@ -50,7 +82,6 @@ export default function UserInterface() {
 
   const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
   // const WAIT_TIME = 180000; // 3 minutos en milisegundos
-  const WAIT_TIME = 10000; // 10 segundos en milisegundos (antes era 180000)
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -58,7 +89,7 @@ export default function UserInterface() {
   const searchYouTube = async () => {
     // Primero validamos el tiempo
     if (lastAdded && Date.now() - lastAdded < WAIT_TIME) {
-      alert("Debes esperar 10 segundos entre canciones");
+      alert("Debes esperar ${WAIT_TIME/1000} segundos entre canciones");
       return;
     }
     const response = await fetch(
@@ -68,23 +99,13 @@ export default function UserInterface() {
     setResults(data.items);
   };
 
-  const addToQueue = (video) => {
-    if (!userName) return alert("Ingresa tu nombre");
-    if (lastAdded && Date.now() - lastAdded < WAIT_TIME) {
-      return alert("Debes esperar 10 segundos entre canciones");
-    }
-    // En UserInterface.jsx, dentro de la función addToQueue:
-    setTimeRemaining(30); // 180 segundos = 3 minutos
-    setQueue([...queue, { ...video, user: userName }]);
-    setLastAdded(Date.now());
-    setUserName("");
-    setSearchTerm(""); /// Agregar el mensaje de confirmación
-    setResults([]); // Agregar esta línea para limpiar los resultados
-    setOpenSnackbar(true);
-
-    // alert('Canción agregada a la cola');/ Añadir esta línea para resetear el campo de búsqueda
-  };
   // Agregar este useEffect para actualizar el temporizador
+  useEffect(() => {
+    const savedLastAdded = localStorage.getItem("lastAdded");
+    if (savedLastAdded) {
+      setLastAdded(parseInt(savedLastAdded));
+    }
+  }, []);
   useEffect(() => {
     let timer;
     if (lastAdded) {
@@ -113,17 +134,6 @@ export default function UserInterface() {
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
-        {/* <img
-          src={logo}
-          alt="Logo"
-          style={{
-            width: "100%", // Cambia a 100%
-            maxWidth: "200px", // Añade un maxWidth
-            height: "auto",
-            display: "block",
-            margin: "0 auto",
-          }}
-        /> */}
         <Typography
           variant="h4"
           sx={{ color: "white", mb: 4, textAlign: "center" }}
@@ -272,27 +282,29 @@ export default function UserInterface() {
                 p: 2,
               }}
             >
-              {queue.map((item, index) => (
-                <ListItem
-                  key={index}
-                  sx={{
-                    color: "white",
-                    bgcolor: "rgba(255, 255, 255, 0.05)",
-                    mb: 1,
-                    borderRadius: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                    Usuario: {item.user}
-                  </Typography>
-                  <Typography variant="body1">
-                    Canción: {item.snippet.title}
-                  </Typography>
-                </ListItem>
-              ))}
+              {Array.isArray(queue) &&
+                queue.map((item, index) => (
+                  <ListItem
+                    // Cambiar esta línea
+                    key={`${item.videoId}-${index}`} // Usar una combinación única de videoId e índice
+                    sx={{
+                      color: "white",
+                      bgcolor: "rgba(255, 255, 255, 0.05)",
+                      mb: 1,
+                      borderRadius: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                      Usuario: {item.user}
+                    </Typography>
+                    <Typography variant="body1">
+                      Canción: {item.snippet.title}
+                    </Typography>
+                  </ListItem>
+                ))}
             </List>
           </Grid>
 
