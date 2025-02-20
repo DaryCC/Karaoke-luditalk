@@ -32,6 +32,9 @@ export default function UserInterface() {
   const [previewVideoId, setPreviewVideoId] = useState(null);
   const WAIT_TIME = 18000; // 10 segundos en milisegundos (antes era 180000)
 
+  useEffect(() => {
+    console.log("Cola actualizada en userinterface", queue);
+  }, [queue]);
   // karaoke-app/components/UserInterface.jsx
   const addToQueue = async (video) => {
     if (!userName) {
@@ -50,6 +53,7 @@ export default function UserInterface() {
       const response = await fetch("http://localhost:3000/api/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        Authorization: `Bearer ${YOUTUBE_API_KEY}`,
         body: JSON.stringify({
           videoId: video.id.videoId,
           user: userName,
@@ -87,16 +91,37 @@ export default function UserInterface() {
   const [timeRemaining, setTimeRemaining] = useState(0);
 
   const searchYouTube = async () => {
-    // Primero validamos el tiempo
-    if (lastAdded && Date.now() - lastAdded < WAIT_TIME) {
-      alert("Debes esperar ${WAIT_TIME/1000} segundos entre canciones");
-      return;
+    try {
+      // Búsqueda inicial
+      const searchResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${searchTerm}&type=video&key=${YOUTUBE_API_KEY}`
+      );
+      const searchData = await searchResponse.json();
+
+      // Obtener IDs de videos
+      const videoIds = searchData.items
+        .map((item) => item.id.videoId)
+        .join(",");
+
+      // Verificar status de los videos
+      const videoResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=status&id=${videoIds}&key=${YOUTUBE_API_KEY}`
+      );
+      const videoData = await videoResponse.json();
+
+      // Filtrar videos embebibles
+      const embedableVideos = searchData.items.filter((searchItem) => {
+        const videoStatus = videoData.items.find(
+          (videoItem) => videoItem.id === searchItem.id.videoId
+        );
+        return videoStatus?.status?.embeddable !== false;
+      });
+
+      setResults(embedableVideos);
+    } catch (error) {
+      console.error("Error en la búsqueda:", error);
+      setResults([]);
     }
-    const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${searchTerm}&type=video&key=${YOUTUBE_API_KEY}`
-    );
-    const data = await response.json();
-    setResults(data.items);
   };
 
   // Agregar este useEffect para actualizar el temporizador
@@ -283,28 +308,33 @@ export default function UserInterface() {
               }}
             >
               {Array.isArray(queue) &&
-                queue.map((item, index) => (
-                  <ListItem
-                    // Cambiar esta línea
-                    key={`${item.videoId}-${index}`} // Usar una combinación única de videoId e índice
-                    sx={{
-                      color: "white",
-                      bgcolor: "rgba(255, 255, 255, 0.05)",
-                      mb: 1,
-                      borderRadius: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                      Usuario: {item.user}
-                    </Typography>
-                    <Typography variant="body1">
-                      Canción: {item.snippet.title}
-                    </Typography>
-                  </ListItem>
-                ))}
+                queue
+                  .filter((song) => !song.played)
+                  .map((item, index) => (
+                    <ListItem
+                      // Cambiar esta línea
+                      key={item._id || `${item.videoId}-${index}`}
+                      sx={{
+                        color: "white",
+                        bgcolor: "rgba(255, 255, 255, 0.05)",
+                        mb: 1,
+                        borderRadius: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: "bold" }}
+                      >
+                        Usuario: {item.user}
+                      </Typography>
+                      <Typography variant="body1">
+                        Canción: {item.snippet.title}
+                      </Typography>
+                    </ListItem>
+                  ))}
             </List>
           </Grid>
 

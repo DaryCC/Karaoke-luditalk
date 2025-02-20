@@ -10,81 +10,40 @@ const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
 export default function ProjectorInterface() {
   //Agregar controles de reproducción que respondan a las acciones del HostInterface
-  const { queue, playerState, setPlayerState } = useKaraoke();
+  const { queue, setQueue, playerState, setPlayerState } = useKaraoke();
   const playerRef = useRef(null);
+
+  //se encarga de sincronizar el estado del reproductor de YouTube con los controles del HostInterface
   useEffect(() => {
-    if (playerRef.current && queue.length > 0) {
-      if (playerState.isPlaying) {
-        playerRef.current.playVideo();
-      } else {
-        playerRef.current.pauseVideo();
+    if (playerRef.current?.getPlayerState() !== undefined) {
+      try {
+        if (playerRef.current && queue.length > 0) {
+          if (playerState.isPlaying) {
+            playerRef.current.playVideo();
+          } else {
+            playerRef.current.pauseVideo();
+          }
+          playerRef.current.setVolume(playerState.volume);
+        }
+      } catch (error) {
+        console.error("Error controlling player:", error);
       }
-      playerRef.current.setVolume(playerState.volume);
     }
   }, [playerState, queue]);
 
-  // const [playerState, setPlayerState] = useState({
-  //   isplaying: true,
-  //   ismuted: false,
-  //   volume: 100,
-  // });
-
-  // // Añadir ref para controlar el player
-  // const playerRef = useRef(null);
-
-  // // Implementar métodos de control
-  // const handlePlayerControls = (action) => {
-  //   switch(action) {
-  //     case 'play':
-  //       playerRef.current?.playVideo();
-  //       break;
-  //     case 'pause':
-  //       playerRef.current?.pauseVideo();
-  //       break;
-  //     // ... otros controles
-  //   }
+  // const opts = {
+  //   height: "100%",
+  //   width: "100%",
+  //   playerVars: {
+  //     autoplay: 1,
+  //     mute: 1,
+  //     controls: 1,
+  //     modestbranding: 1,
+  //     enablejsapi: 1,
+  //     origin: window.location.origin,
+  //     host: "https://www.youtube.com",
+  //   },
   // };
-
-  // const [queue, setQueue] = useState([
-  //   {
-  //     id: { videoId: "dQw4w9WgXcQ" },
-  //     user: "Juan Pérez",
-  //     snippet: { title: "Never Gonna Give You Up - Rick Astley" },
-  //   },
-  //   {
-  //     id: { videoId: "kJQP7kiw5Fk" },
-  //     user: "María García",
-  //     snippet: { title: "Despacito - Luis Fonsi" },
-  //   },
-  //   {
-  //     id: { videoId: "9bZkp7q19f0" },
-  //     user: "Carlos Rodríguez",
-  //     snippet: { title: "Gangnam Style - PSY" },
-  //   },
-  //   {
-  //     id: { videoId: "L_jWHffIx5E" },
-  //     user: "Ana Martínez",
-  //     snippet: { title: "All Star - Smash Mouth" },
-  //   },
-  //   {
-  //     id: { videoId: "y6120QOlsfU" },
-  //     user: "Pedro Sánchez",
-  //     snippet: { title: "Sandstorm - Darude" },
-  //   },
-  // ]);
-
-  const opts = {
-    height: "100%",
-    width: "100%",
-    playerVars: {
-      autoplay: 1,
-      controls: 1,
-      modestbranding: 1,
-      enablejsapi: 1,
-      origin: window.location.origin,
-      host: "https://www.youtube.com",
-    },
-  };
 
   return (
     <Box sx={{ position: "relative", height: "100vh" }}>
@@ -125,38 +84,55 @@ export default function ProjectorInterface() {
             height: "calc(100vh - 60px)",
           }}
         >
-          <YouTube
-            videoId={queue[0]?.id.videoId}
-            opts={opts}
-            onStateChange={(event) => {
-              if (event.data === YouTube.PlayerState.ENDED) {
-                if (queue.length > 1) {
-                  const newQueue = [...queue];
-                  newQueue.shift();
-                  setQueue(newQueue);
-                } else {
+          {queue.length > 0 && queue[0]?.videoId && (
+            <YouTube
+              videoId={queue[0].videoId}
+              opts={{
+                height: "100%",
+                width: "100%",
+                playerVars: {
+                  autoplay: 1,
+                  mute: 1,
+                  controls: 1,
+                  modestbranding: 1,
+                  enablejsapi: 1,
+                  loop: 0, // Asegúrate que loop esté en 0
+                  origin: window.location.origin, // Importante
+                  host: "https://www.youtube.com",
+                },
+              }}
+              onReady={(event) => {
+                playerRef.current = event.target;
+                if (event.target && event.target.playVideo) {
                   event.target.playVideo();
+                  event.target.unMute();
+                  event.target.setVolume(100);
                 }
-              }
-            }}
-            onReady={(event) => {
-              try {
-                const player = event.target;
-                player.playVideo();
-                player.unMute();
-                player.setVolume(100);
-              } catch (error) {
-                console.error("Error en onReady:", error);
-              }
-            }}
-            style={{
-              width: "100%",
-              height: "100%",
-              maxWidth: "177.78vh",
-              maxHeight: "56.25vw",
-              margin: "auto",
-            }}
-          />
+              }}
+              onStateChange={async (event) => {
+                if (event.data === YouTube.PlayerState.ENDED) {
+                  if (queue.length > 1) {
+                    const finishedSong = queue[0];
+
+                    // Primero actualizar el estado en la base de datos
+                    await fetch("http://localhost:3000/api/songs/played", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        songId: finishedSong._id,
+                        playedAt: new Date(),
+                      }),
+                    });
+
+                    // Luego actualizar la cola local
+                    const newQueue = [...queue];
+                    newQueue.shift();
+                    setQueue(newQueue);
+                  }
+                }
+              }}
+            />
+          )}
 
           <Box
             sx={{
@@ -202,20 +178,18 @@ export default function ProjectorInterface() {
       >
         <Grid item xs={12}>
           <Typography variant="h5" sx={{ color: "white", mb: 2 }}>
-            Próximas canciones:
+            Next:
           </Typography>
           <List
             sx={{ bgcolor: "rgba(255, 255, 255, 0.1)", borderRadius: 1, p: 2 }}
           >
-            {queue.map((item, index) => (
+            {/* // En ProjectorInterface.jsx, modificar la sección donde se mapea la cola */}
+            {queue.slice(1).map((item, index) => (
               <ListItem
                 key={index}
                 sx={{
                   color: "white",
-                  bgcolor:
-                    index === 0
-                      ? "rgba(76, 175, 80, 0.3)"
-                      : "rgba(255, 255, 255, 0.05)",
+                  bgcolor: "rgba(255, 255, 255, 0.05)",
                   mb: 1,
                   borderRadius: 1,
                   position: "relative",
@@ -231,7 +205,14 @@ export default function ProjectorInterface() {
                     width: 30,
                     height: 30,
                     borderRadius: "50%",
-                    bgcolor: index === 0 ? "#4CAF50" : "#666",
+                    bgcolor: (() => {
+                      // Gradiente de rojo a verde basado en la posición
+                      if (index === 0) return "#4CAF50"; // Verde para el siguiente
+                      if (index === 1) return "#8BC34A"; // Verde claro
+                      if (index === 2) return "#FFEB3B"; // Amarillo
+                      if (index === 3) return "#FF9800"; // Naranja
+                      return "#F44336"; // Rojo para los más lejanos
+                    })(),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

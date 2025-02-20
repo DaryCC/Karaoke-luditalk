@@ -1,12 +1,19 @@
 // src/context/KaraokeContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3000");
+const socket = io("http://localhost:3000", {
+  withCredentials: true,
+  transports: ["websocket"],
+});
 
 const KaraokeContext = createContext();
 
 export function KaraokeProvider({ children }) {
   const [queue, setQueue] = useState([]);
+  const [playerState, setPlayerState] = useState({
+    isPlaying: false,
+    volume: 100,
+  });
 
   const [deviceId, setDeviceId] = useState(() => {
     let savedDeviceId = localStorage.getItem("deviceId");
@@ -38,11 +45,12 @@ export function KaraokeProvider({ children }) {
 
     // Escuchar actualizaciones de Socket.io
     socket.on("queueUpdated", (updatedQueue) => {
-      setQueue(updatedQueue);
+      setQueue(Array.isArray(updatedQueue) ? updatedQueue : []);
     });
+    return () => socket.off("queueUpdated");
   }, []);
   return (
-    <KaraokeContext.Provider value={{ queue, setQueue }}>
+    <KaraokeContext.Provider value={{ queue, setQueue,playerState,setPlayerState }}>
       {children}
     </KaraokeContext.Provider>
   );

@@ -7,10 +7,15 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      '/api': 'http://localhost:3000'
-    }
-  },
-  define: {
-    "process.env": {},
+      "/socket.io": {
+        target: "http://localhost:3000",
+        ws: true,
+      },
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });
