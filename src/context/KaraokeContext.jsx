@@ -14,8 +14,11 @@ export function KaraokeProvider({ children }) {
     isPlaying: false,
     volume: 100,
   });
+  // Inicializar deviceId con un valor por defecto
+  const [deviceId, setDeviceId] = useState(null);
 
-  const [deviceId, setDeviceId] = useState(() => {
+  // Mover la lógica de inicialización a useEffect
+  useEffect(() => {
     let savedDeviceId = localStorage.getItem("deviceId");
 
     if (!savedDeviceId) {
@@ -25,8 +28,8 @@ export function KaraokeProvider({ children }) {
       localStorage.setItem("deviceId", savedDeviceId);
     }
 
-    return savedDeviceId;
-  });
+    setDeviceId(savedDeviceId);
+  }, []); // Se ejecuta solo una vez al montar el componente
 
   useEffect(() => {
     // Cargar cola inicial desde MongoDB
@@ -50,7 +53,9 @@ export function KaraokeProvider({ children }) {
     return () => socket.off("queueUpdated");
   }, []);
   return (
-    <KaraokeContext.Provider value={{ queue, setQueue,playerState,setPlayerState }}>
+    <KaraokeContext.Provider
+      value={{ queue, setQueue, playerState, setPlayerState }}
+    >
       {children}
     </KaraokeContext.Provider>
   );
