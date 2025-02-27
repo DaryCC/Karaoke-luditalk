@@ -1,5 +1,5 @@
 import { Search, Add, PlayArrow, QueueMusic } from "@mui/icons-material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import YouTube from "react-youtube";
 // En UserInterface.jsx, añade al inicio:
 
@@ -28,6 +28,7 @@ export default function UserInterface() {
   // const [queue, setQueue] = useState([]);
   const [userName, setUserName] = useState("");
   const [lastAdded, setLastAdded] = useState(null);
+  const nameInputRef = useRef(null);
   // const navigate = useNavigate();
   const [previewVideoId, setPreviewVideoId] = useState(null);
   const WAIT_TIME = 18000; // 10 segundos en milisegundos (antes era 180000)
@@ -39,6 +40,8 @@ export default function UserInterface() {
   const addToQueue = async (video) => {
     if (!userName) {
       alert("Ingresa tu nombre");
+      nameInputRef.current?.focus(); // Agregar enfoque aquí si falta el nombre
+
       return;
     }
 
@@ -67,8 +70,13 @@ export default function UserInterface() {
         localStorage.setItem("lastAdded", Date.now().toString());
         setLastAdded(Date.now());
         setOpenSnackbar(true);
+        // Agrupar la limpieza de campos y el enfoque
         setResults([]);
         setSearchTerm("");
+        setUserName(""); // Limpiar también el nombre
+        setTimeout(() => {
+          nameInputRef.current?.focus(); // Usar setTimeout para asegurar que el DOM se ha actualizado
+        }, 0);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -94,7 +102,7 @@ export default function UserInterface() {
     try {
       // Búsqueda inicial
       const searchResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${searchTerm}&type=video&key=${YOUTUBE_API_KEY}`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=karaoke ${searchTerm}&type=video&key=${YOUTUBE_API_KEY}`
       );
       const searchData = await searchResponse.json();
 
@@ -177,6 +185,7 @@ export default function UserInterface() {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
+              inputRef={nameInputRef}
               label="Escribe tu nombre"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
@@ -309,10 +318,9 @@ export default function UserInterface() {
             >
               {Array.isArray(queue) &&
                 queue
-                  .filter((song) => !song.played)
+                  .filter((song) => !song.played) // Filtrar solo las canciones no reproducidas
                   .map((item, index) => (
                     <ListItem
-                      // Cambiar esta línea
                       key={item._id || `${item.videoId}-${index}`}
                       sx={{
                         color: "white",
