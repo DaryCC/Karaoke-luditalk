@@ -44,9 +44,19 @@ const VideoPlayer = ({ currentVideoId, onVideoEnd, queue }) => {
               event.target.playVideo();
               event.target.unMute();
               event.target.setVolume(100);
+              // Asegurar que el video comience desde el principio
+              event.target.seekTo(0);
             }
           }}
-          onStateChange={onVideoEnd}
+          onStateChange={(event) => {
+            // Verificar si el video ha terminado
+            if (event.data === YouTube.PlayerState.ENDED) {
+              // Llamar a onVideoEnd solo cuando el video realmente termina
+              onVideoEnd(event);
+              // Limpiar la referencia del reproductor
+              playerRef.current = null;
+            }
+          }}
         />
       )}
     </Box>

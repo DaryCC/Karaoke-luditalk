@@ -37,20 +37,21 @@ export function KaraokeProvider({ children }) {
       try {
         const response = await fetch("http://localhost:3000/api/queue");
         const data = await response.json();
-        // Asegúrate que data sea un array
         setQueue(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Error fetching queue:", error);
-        setQueue([]); // Inicializa como array vacío en caso de error
+        console.error("Error obteniendo la cola:", error);
+        setQueue([]);
       }
     };
+    // Actualizar la cola inicialmente
     fetchQueue();
 
-    // Escuchar actualizaciones de Socket.io
-    socket.on("queueUpdated", (updatedQueue) => {
-      setQueue(Array.isArray(updatedQueue) ? updatedQueue : []);
-    });
-    return () => socket.off("queueUpdated");
+    // Configurar intervalo para sincronización periódica
+    const syncInterval = setInterval(fetchQueue, 5000);
+    return () => {
+      socket.off("queueUpdated");
+      clearInterval(syncInterval);
+    };
   }, []);
   return (
     <KaraokeContext.Provider
